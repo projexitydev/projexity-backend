@@ -11,7 +11,7 @@ const app = express();
 
 // Middleware to allow CORS from your frontend
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: ["http://localhost:3000", "http://localhost:3000/"],
   credentials: true
 }));
 
@@ -30,7 +30,7 @@ app.use(passport.session());
 passport.use(new GitHubStrategy({
   clientID: 'Ov23liiLKljHQqIy9SgB',
   clientSecret: '737d696ad5fff79b43756b05f0dae10a5ed95ac5',
-  callbackURL: 'http://localhost:3000'
+  callbackURL: 'http://localhost:5000/auth/github/callback'
 },
 function (accessToken, refreshToken, profile, done) {
   // You can add database integration here to find or create users
@@ -53,7 +53,7 @@ app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] 
 app.get('/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/' }),
   (req, res) => {
-    res.redirect(`http://localhost:3000`);
+    res.redirect(`http://localhost:3000/`);
   }
 );
 
@@ -67,11 +67,17 @@ app.get('/auth/user', (req, res) => {
 });
 
 // Logout route
-app.get('/auth/logout', (req, res) => {
-  req.logout(() => {
-    res.redirect(process.env.FRONTEND_URL);
+app.get('/auth/logout', (req, res, next) => {
+    req.logout((err) => {
+      if (err) {
+        return next(err); // Handle the error properly
+      }
+      res.clearCookie('connect.sid');  // Clear the session cookie
+      res.status(200).json({ message: 'Logged out' });  // Send a success response
+    });
   });
-});
+  
+  
 
 // Start server
 const PORT = process.env.PORT || 5000;
