@@ -4,6 +4,7 @@ const GitHubStrategy = require('passport-github2').Strategy;
 const session = require('express-session');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const axios = require('axios');
 
 dotenv.config();
 
@@ -34,6 +35,7 @@ passport.use(new GitHubStrategy({
 },
 function (accessToken, refreshToken, profile, done) {
   // You can add database integration here to find or create users
+  profile.accessToken = accessToken;  
   return done(null, profile);
 }));
 
@@ -47,7 +49,7 @@ passport.deserializeUser((obj, done) => {
 });
 
 // Route to start GitHub authentication
-app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] }));
+app.get('/auth/github', passport.authenticate('github', { scope: ['user:email', 'repo', 'codespace'] }));
 
 // GitHub OAuth callback route
 app.get('/auth/github/callback',
@@ -77,6 +79,64 @@ app.get('/auth/logout', (req, res, next) => {
     });
   });
   
+
+  app.get('/getCodespace', async (req, res) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+  
+    const repositoryId = parseInt(req.query.repoId); // repo id of the template for the project
+    console.log("repositoryId", repositoryId);
+    const accessToken = req.user.accessToken; // Get authenticated user's access token
+
+    const codespaceUrl = `https://api.github.com/user/codespaces`;
+  
+    try {
+      // Step 1: Check for existing codespaces
+      const response = await axios.get(codespaceUrl, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`, // Use the user's access token
+          Accept: 'application/vnd.github.v3+json',
+        },
+      });
+  
+      const codespaces = response.data.codespaces || [];
+  
+      // Find if there is a codespace with the repository ID
+      const existingCodespace = codespaces.find(cs => cs.repository.id === repositoryId);
+  
+      if (existingCodespace) {
+        // If a Codespace exists, return its URL
+        console.log("existingCodespace", existingCodespace);
+        return res.json({ url: existingCodespace.web_url });
+      } else {
+        // Step 2: If no Codespace exists, create a new one
+        const createCodespaceUrl = `https://api.github.com/user/codespaces`;
+        const createResponse = await axios.post(
+          createCodespaceUrl,
+          {
+            repository_id: repositoryId, // Required repository ID
+            ref: 'main', 
+            geo: 'UsEast', // Optionally specify the geographic location
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: 'application/vnd.github.v3+json',
+            },
+          }
+        );
+  
+        // Return the newly created Codespace URL
+        return res.json({ url: createResponse.data.web_url });
+      }
+    } catch (error) {
+      console.error('Error checking or creating codespace:', error);
+      return res.status(500).json({ message: 'Error checking or creating codespace' });
+    }
+  });
+  
+
   
 
 // Start server
