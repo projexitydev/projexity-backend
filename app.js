@@ -5,10 +5,21 @@ const session = require('express-session');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const axios = require('axios');
-
+const connectDatabase = require('./db');
+const projectRoutes = require('./routes/projectRoutes');
 dotenv.config();
 
 const app = express();
+
+// Enable CORS and JSON body parsing
+app.use(express.json());
+app.use(cors());
+
+// Connect to MongoDB
+connectDatabase();
+
+// Use database API routes
+app.use('/api', projectRoutes);
 
 // Middleware to allow CORS from your frontend
 app.use(cors({
@@ -135,8 +146,6 @@ app.get('/auth/logout', (req, res, next) => {
       return res.status(500).json({ message: 'Error checking or creating codespace' });
     }
   });
-  
-
   
 
 // Start server
