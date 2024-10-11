@@ -97,7 +97,6 @@ app.get('/auth/logout', (req, res, next) => {
     }
   
     const repositoryId = parseInt(req.query.repoId); // repo id of the template for the project
-    console.log("repositoryId", repositoryId);
     const accessToken = req.user.accessToken; // Get authenticated user's access token
 
     const codespaceUrl = `https://api.github.com/user/codespaces`;
@@ -115,10 +114,11 @@ app.get('/auth/logout', (req, res, next) => {
   
       // Find if there is a codespace with the repository ID
       const existingCodespace = codespaces.find(cs => cs.repository.id === repositoryId);
+
+      console.log(req.user.username + " just opened a codespace! repoId: " + repositoryId)
   
       if (existingCodespace) {
         // If a Codespace exists, return its URL
-        console.log("existingCodespace", existingCodespace);
         return res.json({ url: existingCodespace.web_url });
       } else {
         // Step 2: If no Codespace exists, create a new one
