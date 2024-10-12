@@ -7,6 +7,7 @@ const dotenv = require('dotenv');
 const axios = require('axios');
 const connectDatabase = require('./db');
 const projectRoutes = require('./routes/projectRoutes');
+const userRoutes = require('./routes/userRoutes');
 dotenv.config();
 
 const app = express();
@@ -20,6 +21,7 @@ connectDatabase();
 
 // Use database API routes
 app.use('/api', projectRoutes);
+app.use('/api', userRoutes);
 
 // Middleware to allow CORS from your frontend
 app.use(cors({
