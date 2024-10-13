@@ -8,6 +8,7 @@ import axios from 'axios';
 import { ChatGPTAPI } from 'chatgpt';
 import connectDatabase from './db.js';
 import projectRoutes from './routes/projectRoutes.js';
+const userRoutes = require('./routes/userRoutes');
 import rateLimit from 'express-rate-limit';
 
 dotenv.config();
@@ -23,6 +24,7 @@ connectDatabase();
 
 // Use database API routes
 app.use('/api', projectRoutes);
+app.use('/api', userRoutes);
 
 // Middleware to allow CORS from your frontend
 app.use(cors({
