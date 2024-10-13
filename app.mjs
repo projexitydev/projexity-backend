@@ -8,7 +8,7 @@ import axios from 'axios';
 import { ChatGPTAPI } from 'chatgpt';
 import connectDatabase from './db.js';
 import projectRoutes from './routes/projectRoutes.js';
-const userRoutes = require('./routes/userRoutes');
+import userRoutes from './routes/userRoutes.js';
 import rateLimit from 'express-rate-limit';
 
 dotenv.config();
