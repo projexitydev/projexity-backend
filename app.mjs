@@ -1,12 +1,15 @@
-const express = require('express');
-const passport = require('passport');
-const GitHubStrategy = require('passport-github2').Strategy;
-const session = require('express-session');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const axios = require('axios');
-const connectDatabase = require('./db');
-const projectRoutes = require('./routes/projectRoutes');
+import express from 'express';
+import passport from 'passport';
+import { Strategy as GitHubStrategy } from 'passport-github2';
+import session from 'express-session';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import axios from 'axios';
+import { ChatGPTAPI } from 'chatgpt';
+import connectDatabase from './db.js';
+import projectRoutes from './routes/projectRoutes.js';
+import rateLimit from 'express-rate-limit';
+
 dotenv.config();
 
 const app = express();
@@ -147,6 +150,40 @@ app.get('/auth/logout', (req, res, next) => {
     }
   });
   
+  const chatLimiter = rateLimit({
+    windowMs: 24 * 60 * 60 * 1000, // every 24 hours
+    max: 50, // Limit each IP to 3 requests per 24 hr
+    message: 'You have exceeded the 50 requests in 24 hours limit!',
+    standardHeaders: true,
+    legacyHeaders: false, 
+  });
+
+  app.post('/api/chat', chatLimiter, async (req, res) => {
+    const { prompt, conversationId, parentMessageId, apiBaseUrl, model } = req.body;
+  
+    const api = new ChatGPTAPI({
+      apiKey: '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',
+      apiBaseUrl: apiBaseUrl,
+      completionParams: {
+        model: model
+      },
+    });
+  
+    try {
+      const response = await api.sendMessage(prompt, {
+        conversationId,
+        parentMessageId,
+        onProgress: (partialResponse) => {
+          res.write(JSON.stringify(partialResponse));
+        },
+      });
+  
+      res.end(JSON.stringify(response));
+    } catch (error) {
+      console.error('Error:', error);
+      res.status(500).json({ error: 'An error occurred while processing your request.' });
+    }
+  });
 
 // Start server
 const PORT = process.env.PORT || 5000;
