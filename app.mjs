@@ -18,6 +18,7 @@ const app = express();
 // Enable CORS and JSON body parsing
 app.use(express.json());
 app.use(cors());
+app.set('trust proxy', true);
 
 // Connect to MongoDB
 connectDatabase();
