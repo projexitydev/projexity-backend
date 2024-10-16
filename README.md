@@ -1,4 +1,4 @@
-# Projexity Backend
+# Projexity-Backend
 
 ## Database
 
