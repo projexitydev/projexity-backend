@@ -197,49 +197,31 @@ const chatLimiter = rateLimit({
 
 app.post('/api/chat', chatLimiter, async (req, res) => {
   const { prompt, conversationId, parentMessageId, apiBaseUrl, model } = req.body;
-
-  console.log("New Chat Request");
-
-  // Set headers to prevent buffering and enable chunked transfer
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.setHeader('Transfer-Encoding', 'chunked');
-  res.setHeader('Cache-Control', 'no-cache, no-transform');
-  res.setHeader('X-Accel-Buffering', 'no'); // Important for Nginx
-
-  // Disable Nagle's algorithm to send packets immediately
-  req.socket.setNoDelay(true);
-
-  // Flush headers to ensure they are sent immediately
-  res.flushHeaders();
-
+  
+  console.log("New Chat Request")
+  
   const api = new ChatGPTAPI({
-    apiKey: process.env.OPENAI_API_KEY, // Use environment variable for security
+    apiKey: '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',
     apiBaseUrl: apiBaseUrl,
     completionParams: {
-      model: model,
-   ,
+      model: model
     },
- ,
   });
 
   try {
-    await api.sendMessage(prompt, {
+    const response = await api.sendMessage(prompt, {
       conversationId,
       parentMessageId,
       onProgress: (partialResponse) => {
-        res.write(JSON.stringify(partialResponse) + '\n'); // Send each chunk followed by a newline
-        res.flush(); // Ensure data is sent immediately
+        res.write(JSON.stringify(partialResponse));
+
       },
     });
 
-    res.end(); // Signal the end of the response
+    res.end(JSON.stringify(response));
   } catch (error) {
     console.error('Error:', error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'An error occurred while processing your request.' });
-    } else {
-      res.end();
-    }
+    res.status(500).json({ error: 'An error occurred while processing your request.' });
   }
 });
 
