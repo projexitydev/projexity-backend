@@ -199,10 +199,6 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
   const { prompt, conversationId, parentMessageId, apiBaseUrl, model } = req.body;
   
   console.log("New Chat Request")
-
-  res.setHeader('Content-Type', 'application/json');
-  res.setHeader('Transfer-Encoding', 'chunked');
-  res.flushHeaders(); // Make sure headers are sent immediately
   
   const api = new ChatGPTAPI({
     apiKey: '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',
@@ -218,7 +214,7 @@ app.post('/api/chat', chatLimiter, async (req, res) => {
       parentMessageId,
       onProgress: (partialResponse) => {
         res.write(JSON.stringify(partialResponse));
-        res.flush();
+
       },
     });
 
