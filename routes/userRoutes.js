@@ -8,4 +8,7 @@ router.post('/users', userController.createUser);
 // Update a user (including their tickets)
 router.put('/users/:github_username', userController.updateUser);
 
+// Get a user XP by github username
+router.get('/users/:github_username/xp', userController.getUserXP);
+
 module.exports = router;
