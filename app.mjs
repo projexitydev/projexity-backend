@@ -29,7 +29,7 @@ app.use('/api', userRoutes);
 
 // Middleware to allow CORS from your frontend
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:3000/", "https://projexity.dev/"],
+  origin: ["http://localhost:3000", "http://localhost:3000/", "https://projexity.dev", "https://projexity.dev/"],
   credentials: true
 }));
 
