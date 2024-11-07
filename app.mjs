@@ -29,7 +29,7 @@ app.use('/api', userRoutes);
 
 // Middleware to allow CORS from your frontend
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:3000/"],
+  origin: ["http://localhost:3000", "http://localhost:3000/", "https://projexity.dev/"],
   credentials: true
 }));
 
@@ -48,7 +48,7 @@ app.use(passport.session());
 passport.use(new GitHubStrategy({
   clientID: 'Ov23liiLKljHQqIy9SgB',
   clientSecret: '737d696ad5fff79b43756b05f0dae10a5ed95ac5',
-  callbackURL: 'http://localhost:5000/auth/github/callback'
+  callbackURL: 'http://projexity.us-east-2.elasticbeanstalk.com/auth/github/callback'
 },
 async function (accessToken, refreshToken, profile, done) {
   try {
@@ -94,7 +94,7 @@ app.get('/auth/github', passport.authenticate('github', { scope: ['user:email', 
 app.get('/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/' }),
   (req, res) => {
-    res.redirect(`http://localhost:3000/`);
+    res.redirect(`https://projexity.dev/`);
   }
 );
 
