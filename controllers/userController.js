@@ -40,3 +40,26 @@ exports.updateUser = async (req, res) => {
     res.status(500).json({ message: 'Error updating user', error: error.message });
   }
 };
+
+// Add this new function to the existing exports
+exports.getUserXP = async (req, res) => {
+  try {
+    const { github_username } = req.params;
+    
+    const user = await User.findOne({ github_username });
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ 
+      github_username: user.github_username,
+      total_xp: user.total_xp 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Error fetching user XP', 
+      error: error.message 
+    });
+  }
+};
