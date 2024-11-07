@@ -58,7 +58,7 @@ app.use('/api', userRoutes);
 passport.use(new GitHubStrategy({
   clientID: 'Ov23liiLKljHQqIy9SgB',
   clientSecret: '737d696ad5fff79b43756b05f0dae10a5ed95ac5',
-  callbackURL: 'http://localhost:5000/auth/github/callback'
+  callbackURL: 'http://projexity.us-east-2.elasticbeanstalk.com/auth/github/callback'
 },
 async function (accessToken, refreshToken, profile, done) {
   try {
@@ -112,7 +112,7 @@ app.get('/auth/github', passport.authenticate('github', {
 app.get('/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/' }),
   (req, res) => {
-    res.redirect(`http://localhost:3000/`);
+    res.redirect(`https://projexity.dev/`);
   }
 );
 
@@ -236,8 +236,6 @@ const chatLimiter = rateLimit({
 
 app.post('/api/chat', chatLimiter, async (req, res) => {
   const { prompt, conversationId, parentMessageId, apiBaseUrl, model } = req.body;
-  
-  console.log("New Chat Request")
   
   const api = new ChatGPTAPI({
     apiKey: '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',
