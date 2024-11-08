@@ -16,9 +16,36 @@ dotenv.config();
 
 const app = express();
 
+// Express session middleware
+// Update your session configuration
+app.use(session({
+  secret: 'sdmoaisnduiasd29u912dasdias',
+  resave: true,
+  saveUninitialized: true,
+  cookie: {
+    secure: false, // Set to true in production with HTTPS
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax'
+  },
+  name: 'projexity.sid'
+}));
+
+// Passport initialization
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Place this before your routes
+app.use(cors({
+  origin: ["http://localhost:3000", "http://localhost:3000/", "https://projexity.dev", "https://projexity.dev/"],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['set-cookie']
+}))
+
 // Enable CORS and JSON body parsing
 app.use(express.json());
-app.use(cors());
 
 // Connect to MongoDB
 connectDatabase();
@@ -26,23 +53,6 @@ connectDatabase();
 // Use database API routes
 app.use('/api', projectRoutes);
 app.use('/api', userRoutes);
-
-// Middleware to allow CORS from your frontend
-app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:3000/", "https://projexity.dev", "https://projexity.dev/"],
-  credentials: true
-}));
-
-// Express session middleware
-app.use(session({
-  secret: 'sdmoaisnduiasd29u912dasdias',
-  resave: false,
-  saveUninitialized: true,
-}));
-
-// Passport initialization
-app.use(passport.initialize());
-app.use(passport.session());
 
 // Passport GitHub Strategy
 passport.use(new GitHubStrategy({
@@ -72,15 +82,22 @@ async function (accessToken, refreshToken, profile, done) {
   }
 }));
 
-// Serialization of user sessions
 passport.serializeUser((user, done) => {
-  done(null, { github_username: user.github_username });
+  done(null, {
+    id: user._id,
+    github_username: user.github_username,
+    accessToken: user.accessToken
+  });
 });
 
-// Deserialization of user sessions
 passport.deserializeUser(async (userData, done) => {
   try {
     const user = await User.findOne({ github_username: userData.github_username });
+    if (!user) {
+      return done(null, null);
+    }
+    // Maintain the access token from the session
+    user.accessToken = userData.accessToken;
     done(null, user);
   } catch (error) {
     done(error, null);
@@ -88,8 +105,9 @@ passport.deserializeUser(async (userData, done) => {
 });
 
 // Route to start GitHub authentication
-app.get('/auth/github', passport.authenticate('github', { scope: ['user:email', 'repo', 'codespace'] }));
-
+app.get('/auth/github', passport.authenticate('github', { 
+  scope: ['user:email', 'repo', 'codespace', 'codespaces'] // Add 'codespaces' scope
+}));
 // GitHub OAuth callback route
 app.get('/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/' }),
@@ -120,69 +138,90 @@ app.get('/auth/user', async (req, res) => {
 
 // Logout route
 app.get('/auth/logout', (req, res, next) => {
-    req.logout((err) => {
-      if (err) {
-        return next(err); // Handle the error properly
-      }
-      res.clearCookie('connect.sid');  // Clear the session cookie
-      res.status(200).json({ message: 'Logged out' });  // Send a success response
+  req.logout((err) => {
+    if (err) return next(err);
+    res.clearCookie('connect.sid', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
     });
+    res.status(200).json({ message: 'Logged out' });
   });
+});
 
-// Route to get Codespace URL
+// Update the getCodespace route to include better error handling and logging
 app.get('/getCodespace', async (req, res) => {
-  if (!req.isAuthenticated()) {
+  // Check authentication
+  if (!req.isAuthenticated() || !req.user) {
+    console.log('User not authenticated');
     return res.status(401).json({ message: 'Not authenticated' });
   }
 
-  const repositoryId = parseInt(req.query.repoId); // repo id of the template for the project
-  const accessToken = req.user.accessToken; // Get authenticated user's access token
+  // Verify access token
+  if (!req.user.accessToken) {
+    console.log('No access token found for user:', req.user.github_username);
+    return res.status(401).json({ message: 'No access token available' });
+  }
 
-  const codespaceUrl = `https://api.github.com/user/codespaces`;
+  const repositoryId = parseInt(req.query.repoId);
+  const accessToken = req.user.accessToken;
 
   try {
-    // Step 1: Check for existing codespaces
-    const response = await axios.get(codespaceUrl, {
+    const response = await axios.get('https://api.github.com/user/codespaces', {
       headers: {
-        Authorization: `Bearer ${accessToken}`, // Use the user's access token
-        Accept: 'application/vnd.github.v3+json',
-      },
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'Projexity-App'
+      }
     });
 
     const codespaces = response.data.codespaces || [];
+    console.log('Found codespaces:', codespaces.length);
 
-    // Find if there is a codespace with the repository ID
     const existingCodespace = codespaces.find(cs => cs.repository.id === repositoryId);
 
-    console.log(req.user.username + " just opened a codespace! repoId: " + repositoryId)
-
     if (existingCodespace) {
-      // If a Codespace exists, return its URL
+      console.log('Found existing codespace:', existingCodespace.web_url);
       return res.json({ url: existingCodespace.web_url });
     } else {
-      // Step 2: If no Codespace exists, create a new one
-      const createCodespaceUrl = `https://api.github.com/user/codespaces`;
+      console.log('Creating new codespace for repo:', repositoryId);
       const createResponse = await axios.post(
-        createCodespaceUrl,
+        codespaceUrl,
         {
-          repository_id: repositoryId, // Required repository ID
-          ref: 'main', 
-          geo: 'UsEast', // Optionally specify the geographic location
+          repository_id: repositoryId,
+          ref: 'main',
+          geo: 'UsEast',
         },
         {
           headers: {
-            Authorization: `Bearer ${accessToken}`,
-            Accept: 'application/vnd.github.v3+json',
+            'Authorization': `token ${accessToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'Projexity-App'
           },
         }
       );
 
-      // Return the newly created Codespace URL
+      console.log('Created new codespace:', createResponse.data.web_url);
       return res.json({ url: createResponse.data.web_url });
     }
   } catch (error) {
-    console.error('Error checking or creating codespace:', error);
-    return res.status(500).json({ message: 'Error checking or creating codespace' });
+    console.error('Codespace error:', {
+      status: error.response?.status,
+      message: error.response?.data?.message,
+      documentation_url: error.response?.data?.documentation_url
+    });
+    
+    if (error.response?.status === 401) {
+      // Clear session on authentication error
+      req.logout((err) => {
+        if (err) console.error('Logout error:', err);
+      });
+    }
+    
+    return res.status(error.response?.status || 500).json({
+      message: 'Error with codespace operation',
+      error: error.response?.data || error.message
+    });
   }
 });
 
