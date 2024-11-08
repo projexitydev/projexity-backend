@@ -37,7 +37,7 @@ app.use(passport.session());
 
 // Place this before your routes
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: ["http://localhost:3000", "http://localhost:3000/", "https://projexity.dev", "https://projexity.dev/"],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
