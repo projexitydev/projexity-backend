@@ -16,45 +16,53 @@ dotenv.config();
 
 const app = express();
 
+// Trust first proxy
+app.set('trust proxy', 1);
+
+// Add debugging middleware at the top of your routes
+app.use((req, res, next) => {
+  console.log('Session:', req.session);
+  console.log('User:', req.user);
+  console.log('Cookies:', req.cookies);
+  console.log('Headers:', req.headers);
+  next();
+});
+
 // Express session middleware
-// Update your session configuration
 app.use(session({
   secret: 'sdmoaisnduiasd29u912dasdias',
-  resave: true,
-  saveUninitialized: true,
+  resave: false,
+  saveUninitialized: false,
   cookie: {
-    secure: false, // Set to true in production with HTTPS
+    secure: true,
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax'
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: 'none'
+    // Remove domain setting completely
   },
-  name: 'projexity.sid'
+  name: 'projexity.sid',
+  proxy: true
 }));
 
 // Passport initialization
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Place this before your routes
+// Updated CORS configuration
 app.use(cors({
-  origin: ["http://localhost:3000", "http://localhost:3000/", "https://projexity.dev", "https://projexity.dev/"],
+  origin: ['https://projexity.dev', 'https://www.projexity.dev', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
-  exposedHeaders: ['set-cookie']
-}))
+  exposedHeaders: ['Set-Cookie']
+}));
 
-// Enable CORS and JSON body parsing
 app.use(express.json());
-
-// Connect to MongoDB
 connectDatabase();
-
-// Use database API routes
 app.use('/api', projectRoutes);
 app.use('/api', userRoutes);
 
-// Passport GitHub Strategy
+// Updated GitHub Strategy configuration
 passport.use(new GitHubStrategy({
   clientID: 'Ov23liiLKljHQqIy9SgB',
   clientSecret: '737d696ad5fff79b43756b05f0dae10a5ed95ac5',
@@ -63,7 +71,6 @@ passport.use(new GitHubStrategy({
 async function (accessToken, refreshToken, profile, done) {
   try {
     let user = await User.findOne({ github_username: profile.username });
-
     if (!user) {
       user = new User({
         github_username: profile.username,
@@ -72,10 +79,7 @@ async function (accessToken, refreshToken, profile, done) {
       });
       await user.save();
     }
-
-    // Add accessToken to the user object
     user.accessToken = accessToken;
-
     return done(null, user);
   } catch (error) {
     return done(error);
@@ -106,15 +110,35 @@ passport.deserializeUser(async (userData, done) => {
 
 // Route to start GitHub authentication
 app.get('/auth/github', passport.authenticate('github', { 
-  scope: ['user:email', 'repo', 'codespace', 'codespaces'] // Add 'codespaces' scope
+  scope: ['user:email', 'repo', 'codespace', 'codespaces']
 }));
 // GitHub OAuth callback route
 app.get('/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/' }),
   (req, res) => {
-    res.redirect(`https://projexity.dev/`);
+    console.log('Auth successful, user:', req.user);
+    console.log('Session after auth:', req.session);
+    
+    // Set a specific cookie to test cookie handling
+    res.cookie('test_auth', 'true', {
+      secure: true,
+      httpOnly: true,
+      sameSite: 'none'
+    });
+    
+    res.redirect('https://projexity.dev/');
   }
 );
+
+// Add a test endpoint
+app.get('/auth/test', (req, res) => {
+  res.json({
+    session: req.session,
+    user: req.user,
+    cookies: req.cookies,
+    isAuthenticated: req.isAuthenticated()
+  });
+});
 
 // Route to get current authenticated user
 app.get('/auth/user', async (req, res) => {
