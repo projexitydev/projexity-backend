@@ -58,7 +58,7 @@ app.use('/api', userRoutes);
 passport.use(new GitHubStrategy({
   clientID: 'Ov23liiLKljHQqIy9SgB',
   clientSecret: '737d696ad5fff79b43756b05f0dae10a5ed95ac5',
-  callbackURL: 'http://projexity.us-east-2.elasticbeanstalk.com/auth/github/callback'
+  callbackURL: 'https://projexity-backend-2chk.onrender.com/auth/github/callback'
 },
 async function (accessToken, refreshToken, profile, done) {
   try {
