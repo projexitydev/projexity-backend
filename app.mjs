@@ -225,7 +225,7 @@ app.get('/getCodespace', async (req, res) => {
     } else {
       console.log('Creating new codespace for repo:', repositoryId);
       const createResponse = await axios.post(
-        codespaceUrl,
+        `https://api.github.com/user/codespaces`,
         {
           repository_id: repositoryId,
           ref: 'main',
