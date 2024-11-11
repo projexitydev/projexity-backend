@@ -11,6 +11,7 @@ import projectRoutes from './routes/projectRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import rateLimit from 'express-rate-limit';
 import User from './models/User.js';
+import Project from './models/Project.js';
 
 dotenv.config();
 
@@ -72,11 +73,25 @@ async function (accessToken, refreshToken, profile, done) {
   try {
     let user = await User.findOne({ github_username: profile.username });
     if (!user) {
+      // Create new user
       user = new User({
         github_username: profile.username,
         total_xp: 0,
         projects: []
       });
+      await user.save();
+
+      // Initialize projects for new user
+      const masterProjects = await Project.find();
+      const userProjects = masterProjects.map(project => ({
+        project_id: project.id,
+        tickets: project.tickets.map(ticket => ({
+          ticket_id: ticket.id,
+          ticket_status: 'To Do',
+        })),
+      }));
+
+      user.projects = userProjects;
       await user.save();
     }
     user.accessToken = accessToken;
