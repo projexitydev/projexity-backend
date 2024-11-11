@@ -61,18 +61,7 @@ app.use(cors({
 app.use(express.json());
 connectDatabase();
 
-// Add auth middleware first
-const requireAuth = (req, res, next) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  next();
-};
-
-// Protect all API routes
-app.use('/api', requireAuth);
-
-// Then register routes
+// Remove the requireAuth middleware and just keep the original route setup
 app.use('/api', projectRoutes);
 app.use('/api', userRoutes);
 
