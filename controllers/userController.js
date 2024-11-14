@@ -1,31 +1,36 @@
 const User = require('../models/User');
 const Project = require('../models/Project');
 
-// Create a new user
-exports.createUser = async (req, res) => {
-  try {
-    const user = new User(req.body);
-    await user.save();
-    res.status(201).json(user);
-  } catch (err) {
-    if (err.name === 'ValidationError') {
-      const validationErrors = Object.keys(err.errors).reduce((acc, key) => {
-        acc[key] = err.errors[key].message;
-        return acc;
-      }, {});
-      res.status(400).json({ error: 'Validation failed', details: validationErrors });
-    } else {
-      res.status(500).json({ error: 'Server error', message: err.message });
-    }
-  }
-};
+// // Create a new user
+// exports.createUser = async (req, res) => {
+//   try {
+//     const user = new User(req.body);
+//     await user.save();
+//     res.status(201).json(user);
+//   } catch (err) {
+//     if (err.name === 'ValidationError') {
+//       const validationErrors = Object.keys(err.errors).reduce((acc, key) => {
+//         acc[key] = err.errors[key].message;
+//         return acc;
+//       }, {});
+//       res.status(400).json({ error: 'Validation failed', details: validationErrors });
+//     } else {
+//       res.status(500).json({ error: 'Server error', message: err.message });
+//     }
+//   }
+// };
 
 // Update a user
 exports.updateUser = async (req, res) => {
   try {
     const { github_username } = req.params;
-    const updateData = req.body;
+    
+    // Check if user is authenticated and username matches
+    if (!req.isAuthenticated() || req.user.github_username !== github_username) {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
 
+    const updateData = req.body;
     const updatedUser = await User.findOneAndUpdate(
       { github_username: github_username },
       updateData,
@@ -46,6 +51,11 @@ exports.updateUser = async (req, res) => {
 exports.getUserXP = async (req, res) => {
   try {
     const { github_username } = req.params;
+    
+    // Check if user is authenticated and username matches
+    if (!req.isAuthenticated() || req.user.github_username !== github_username) {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
     
     const user = await User.findOne({ github_username });
     
@@ -69,6 +79,12 @@ exports.getUserXP = async (req, res) => {
 exports.initializeUserProjects = async (req, res) => {
   try {
     const { github_username } = req.params;
+    
+    // Check if user is authenticated and username matches
+    if (!req.isAuthenticated() || req.user.github_username !== github_username) {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+    
     const user = await User.findOne({ github_username });
     
     if (!user) {
@@ -107,6 +123,12 @@ exports.initializeUserProjects = async (req, res) => {
 exports.updateTicketStatus = async (req, res) => {
   try {
     const { github_username } = req.params;
+    
+    // Check if user is authenticated and username matches
+    if (!req.isAuthenticated() || req.user.github_username !== github_username) {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+
     const { project_id, ticket_id, new_status, xpReward } = req.body;
 
     // Validate status
@@ -160,8 +182,13 @@ exports.getUserProjects = async (req, res) => {
   try {
     const { github_username } = req.params;
     
+    // Check if user is authenticated and username matches
+    if (!req.isAuthenticated() || req.user.github_username !== github_username) {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+    
     const user = await User.findOne({ github_username })
-      .select('projects'); // Only fetch the projects field
+      .select('projects');
     
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
