@@ -12,6 +12,7 @@ import userRoutes from './routes/userRoutes.js';
 import rateLimit from 'express-rate-limit';
 import User from './models/User.js';
 import Project from './models/Project.js';
+import DailyActive from './models/DailyActive.js';
 
 dotenv.config();
 
@@ -134,8 +135,8 @@ app.get('/auth/github/callback',
   passport.authenticate('github', { failureRedirect: '/' }),
   (req, res) => {
     console.log('Auth successful, user:', req.user);
-    console.log('Session after auth:', req.session);
-    
+    console.log('Session after auth:', req.session);    
+
     // Set a specific cookie to test cookie handling
     res.cookie('test_auth', 'true', {
       secure: true,
@@ -162,6 +163,15 @@ app.get('/auth/user', async (req, res) => {
   if (req.isAuthenticated()) {
     try {
       const user = await User.findOne({ github_username: req.user.github_username });
+      try {
+        console.log("trying to save daily active user" + user.github_username);
+        const dailyActive = new DailyActive({
+          github_username: user.github_username
+        });
+        await dailyActive.save();
+      } catch (error) {
+        console.error('Error logging daily active user:', error);
+      }
       res.json({
         user: {
           github_username: user.github_username,
