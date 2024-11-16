@@ -128,7 +128,7 @@ passport.deserializeUser(async (userData, done) => {
 
 // Route to start GitHub authentication
 app.get('/auth/github', passport.authenticate('github', { 
-  scope: ['user:email', 'repo', 'codespace', 'codespaces']
+  scope: ['user:email', 'codespace', 'codespaces']
 }));
 // GitHub OAuth callback route
 app.get('/auth/github/callback',
