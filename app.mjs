@@ -52,7 +52,7 @@ app.use(passport.session());
 
 // Updated CORS configuration
 app.use(cors({
-  origin: ['https://projexity.dev', 'https://www.projexity.dev', 'http://localhost:3000'],
+  origin: ['https://app.projexity.dev', 'https://www.app.projexity.dev', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
