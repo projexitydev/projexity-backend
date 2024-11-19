@@ -144,7 +144,7 @@ app.get('/auth/github/callback',
       sameSite: 'none'
     });
     
-    res.redirect('https://projexity.dev/');
+    res.redirect('https://app.projexity.dev/');
   }
 );
 
